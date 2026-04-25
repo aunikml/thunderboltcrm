@@ -46,3 +46,25 @@ class LeadIntelligence(models.Model):
 
     def __str__(self):
         return f"Intelligence: {self.lead.first_name} (Score: {self.score})"
+
+class AIAgent(models.Model):
+    """Defines an AI Agent identity and its factory-default instructions."""
+    name = models.CharField(max_length=100)
+    slug = models.SlugField(unique=True)
+    description = models.TextField(blank=True, null=True)
+    base_instruction = models.TextField()
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+class AgentInstructionTune(models.Model):
+    """Incremental instruction updates that append to the base instructions."""
+    agent = models.ForeignKey(AIAgent, on_delete=models.CASCADE, related_name='tuning_history')
+    additional_instructions = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Tune for {self.agent.name} at {self.created_at}"

@@ -3,26 +3,29 @@ import {
     Box, Typography, Button, Dialog, DialogTitle, DialogContent, 
     DialogActions, Stack, MenuItem, TextField, Alert, 
     CircularProgress, Table, TableBody, TableCell, TableContainer, 
-    TableHead, TableRow, Paper, Divider
+    TableHead, TableRow, Paper, Divider, ToggleButtonGroup, ToggleButton
 } from '@mui/material';
 import { 
     CloudUpload as UploadIcon, 
     CheckCircle as CheckIcon,
-    ArrowBack as ArrowBackIcon
+    ArrowBack as ArrowBackIcon,
+    AutoAwesome as MagicIcon,
+    History as LegacyIcon
 } from '@mui/icons-material';
 import api from '../api/axios';
 import Papa from 'papaparse';
 
 const LeadImportModal = ({ open, onClose, campaignId = null }) => {
     // --- 1. STATE ---
+    const [importMode, setImportMode] = useState('discovery'); // Default to AI Matchmaker for master import
     const [programs, setPrograms] = useState([]);
-    const [importStep, setImportStep] = useState(1); // 1: Setup, 2: Preview
+    const [importStep, setImportStep] = useState(1); 
     const [loading, setLoading] = useState(false);
     const [csvData, setCsvData] = useState([]);
     
     const [meta, setMeta] = useState({
-        category: 'PARTICIPANT', // PARTICIPANT, SOCIAL, WEBINAR
-        platform: 'FB',
+        category: 'PARTICIPANT', 
+        platform: 'NA',
         courseType: 'SHORT',
         program_id: '',
         batch: '',
@@ -35,10 +38,10 @@ const LeadImportModal = ({ open, onClose, campaignId = null }) => {
             fetchPrograms();
             setImportStep(1);
             setCsvData([]);
+            setImportMode(campaignId ? 'legacy' : 'discovery');
             
-            // If we are in a campaign, default to SOCIAL category as per common use case
             if (campaignId) {
-                setMeta(prev => ({ ...prev, category: 'SOCIAL', platform: 'FB' }));
+                setMeta(prev => ({ ...prev, category: 'CAMPAIGN', platform: 'NA' }));
             } else {
                 setMeta(prev => ({ ...prev, category: 'PARTICIPANT', platform: 'NA' }));
             }
@@ -49,9 +52,7 @@ const LeadImportModal = ({ open, onClose, campaignId = null }) => {
         try {
             const res = await api.get('/courses/programs/');
             setPrograms(res.data);
-        } catch (err) {
-            console.error("Uploader failed to fetch programs");
-        }
+        } catch (err) { console.error("Uploader failed to fetch programs"); }
     };
 
     // --- 3. HANDLERS ---
@@ -75,7 +76,9 @@ const LeadImportModal = ({ open, onClose, campaignId = null }) => {
     };
 
     const handleImportSubmit = async () => {
-        if (!meta.program_id) return alert("Please select a specific Course/Program.");
+        if (importMode === 'legacy' && !meta.program_id) {
+            return alert("Please select a specific Course for Legacy Mode.");
+        }
         
         setLoading(true);
         try {
@@ -83,11 +86,12 @@ const LeadImportModal = ({ open, onClose, campaignId = null }) => {
                 leads: csvData,
                 meta: {
                     ...meta,
-                    campaign_id: campaignId // Pass campaign context to backend
+                    program_id: importMode === 'discovery' ? null : meta.program_id,
+                    campaign_id: campaignId 
                 }
             });
-            alert(`Successfully imported ${csvData.length} leads.`);
-            onClose(); // Parent will refresh data
+            alert(`Successfully imported ${csvData.length} leads. AI processing started.`);
+            onClose(); 
         } catch (err) {
             alert("Import failed. Check CSV format.");
         } finally {
@@ -104,84 +108,98 @@ const LeadImportModal = ({ open, onClose, campaignId = null }) => {
             PaperProps={{ sx: { borderRadius: 5, p: 1 } }}
         >
             <DialogTitle sx={{ fontWeight: 900, fontSize: '1.5rem', color: '#1a237e' }}>
-                {importStep === 1 
-                    ? (campaignId ? "Add Leads to Campaign" : "Master Lead Import") 
-                    : "Verify Data Preview"}
+                {importStep === 1 ? "Import New Prospects" : "Verify Data Preview"}
             </DialogTitle>
             
             <DialogContent sx={{ overflowY: 'visible' }}>
                 {importStep === 1 ? (
                     <Stack spacing={3} sx={{ mt: 1 }}>
-                        <Typography variant="body2" color="text.secondary">
-                            {campaignId 
-                                ? "Choose the source and target program for this campaign batch." 
-                                : "Define the context for the leads being added to the bank."}
-                        </Typography>
-
-                        {/* 1. Category Selection */}
-                        <TextField 
-                            select fullWidth label="Lead Source Category" 
-                            variant="outlined"
-                            value={meta.category} 
-                            onChange={(e) => setMeta({...meta, category: e.target.value})}
-                        >
-                            <MenuItem value="PARTICIPANT">Course Participant</MenuItem>
-                            <MenuItem value="SOCIAL">Social Media Lead</MenuItem>
-                            <MenuItem value="WEBINAR">Webinar Lead</MenuItem>
-                        </TextField>
-
-                        {/* 2. Platform (Conditional for Social) */}
-                        {meta.category === 'SOCIAL' && (
-                            <TextField 
-                                select fullWidth label="Social Media Platform" 
-                                value={meta.platform} 
-                                onChange={(e) => setMeta({...meta, platform: e.target.value})}
+                        
+                        {/* MODE SELECTOR */}
+                        <Box>
+                            <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.disabled', mb: 1, display: 'block' }}>
+                                CHOOSE IMPORT STRATEGY
+                            </Typography>
+                            <ToggleButtonGroup
+                                value={importMode}
+                                exclusive
+                                onChange={(e, val) => val && setImportMode(val)}
+                                fullWidth
+                                color="primary"
                             >
-                                <MenuItem value="FB">Facebook</MenuItem>
-                                <MenuItem value="IG">Instagram</MenuItem>
-                                <MenuItem value="LI">LinkedIn</MenuItem>
-                                <MenuItem value="TT">TikTok</MenuItem>
-                            </TextField>
-                        )}
-
-                        {/* 3. Program Logic Box */}
-                        <Box sx={{ p: 2.5, bgcolor: '#f8faff', borderRadius: 4, border: '1px solid #d1d9ff' }}>
-                            <Stack spacing={2}>
-                                <TextField 
-                                    select fullWidth label="Step 1: Course Type" 
-                                    variant="standard"
-                                    value={meta.courseType} 
-                                    onChange={(e) => setMeta({...meta, courseType: e.target.value, program_id: ''})}
-                                >
-                                    <MenuItem value="SHORT">Short / Certificate</MenuItem>
-                                    <MenuItem value="POSTGRAD">Academic Program</MenuItem>
-                                </TextField>
-
-                                <TextField 
-                                    select fullWidth label="Step 2: Select Name" 
-                                    required
-                                    value={meta.program_id} 
-                                    onChange={(e) => setMeta({...meta, program_id: e.target.value})}
-                                >
-                                    {programs
-                                        .filter(p => p.program_type === meta.courseType)
-                                        .map(p => (
-                                            <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>
-                                        ))
-                                    }
-                                </TextField>
-                            </Stack>
+                                <ToggleButton value="discovery" sx={{ py: 1.5, borderRadius: 3, fontWeight: 800 }}>
+                                    <MagicIcon sx={{ mr: 1, fontSize: 18 }} /> AI Matchmaker
+                                </ToggleButton>
+                                <ToggleButton value="legacy" sx={{ py: 1.5, borderRadius: 3, fontWeight: 800 }}>
+                                    <LegacyIcon sx={{ mr: 1, fontSize: 18 }} /> Legacy Course-Wise
+                                </ToggleButton>
+                            </ToggleButtonGroup>
                         </Box>
 
-                        {/* 4. Batch Info (Conditional for Participants) */}
-                        {meta.category === 'PARTICIPANT' && (
-                            <Box sx={{ display: 'flex', gap: 2 }}>
-                                <TextField fullWidth label="Batch" placeholder="Batch 01" value={meta.batch} onChange={(e) => setMeta({...meta, batch: e.target.value})} />
-                                <TextField fullWidth label="Start Date" placeholder="MM/YY" value={meta.start_date} onChange={(e) => setMeta({...meta, start_date: e.target.value})} />
-                            </Box>
+                        {/* SOURCE SELECTION - ALWAYS VISIBLE */}
+                        <TextField 
+                            select fullWidth label="Lead Source / Platform" 
+                            value={meta.platform} 
+                            onChange={(e) => setMeta({...meta, platform: e.target.value})}
+                            helperText="Where did these leads originate from?"
+                        >
+                            <MenuItem value="FB">Facebook</MenuItem>
+                            <MenuItem value="IG">Instagram</MenuItem>
+                            <MenuItem value="LI">LinkedIn</MenuItem>
+                            <MenuItem value="TT">TikTok</MenuItem>
+                            <MenuItem value="EXT_REF">External Referral</MenuItem>
+                            <MenuItem value="INT_REF">Internal Referral</MenuItem>
+                            <MenuItem value="ORG_REF">Organizational Referral</MenuItem>
+                            <MenuItem value="NA">N/A / Other</MenuItem>
+                        </TextField>
+
+                        {importMode === 'discovery' ? (
+                            <Alert severity="info" sx={{ borderRadius: 3, fontWeight: 600 }}>
+                                AI will automatically match these leads to the best courses based on their profession and background.
+                            </Alert>
+                        ) : (
+                            <Stack spacing={2}>
+                                <TextField 
+                                    select fullWidth label="Category Filter" 
+                                    value={meta.category} 
+                                    onChange={(e) => setMeta({...meta, category: e.target.value})}
+                                >
+                                    <MenuItem value="PARTICIPANT">Course Participant</MenuItem>
+                                    <MenuItem value="SOCIAL">Social Media Lead</MenuItem>
+                                    <MenuItem value="WEBINAR">Webinar Lead</MenuItem>
+                                    <MenuItem value="CAMPAIGN">Campaign Lead</MenuItem>
+                                </TextField>
+
+                                <Box sx={{ p: 2.5, bgcolor: '#f8faff', borderRadius: 4, border: '1px solid #d1d9ff' }}>
+                                    <Stack spacing={2}>
+                                        <TextField 
+                                            select fullWidth label="1. Course Type" 
+                                            variant="standard"
+                                            value={meta.courseType} 
+                                            onChange={(e) => setMeta({...meta, courseType: e.target.value, program_id: ''})}
+                                        >
+                                            <MenuItem value="SHORT">Short / Certificate</MenuItem>
+                                            <MenuItem value="POSTGRAD">Academic Program</MenuItem>
+                                        </TextField>
+
+                                        <TextField 
+                                            select fullWidth label="2. Select Course Name" 
+                                            value={meta.program_id} 
+                                            onChange={(e) => setMeta({...meta, program_id: e.target.value})}
+                                        >
+                                            {programs
+                                                .filter(p => p.program_type === meta.courseType)
+                                                .map(p => (
+                                                    <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>
+                                                ))
+                                            }
+                                        </TextField>
+                                    </Stack>
+                                </Box>
+                            </Stack>
                         )}
 
-                        {/* 5. Upload Box */}
+                        {/* UPLOAD BOX */}
                         <Box sx={{ 
                             p: 4, border: '2px dashed #d1d9ff', borderRadius: 4, 
                             textAlign: 'center', bgcolor: '#fbfcfe', cursor: 'pointer',
@@ -190,14 +208,13 @@ const LeadImportModal = ({ open, onClose, campaignId = null }) => {
                             <input type="file" accept=".csv" hidden onChange={handleFileSelect} />
                             <UploadIcon sx={{ fontSize: 40, color: '#1a237e', mb: 1 }} />
                             <Typography variant="h6" sx={{ fontWeight: 800, color: '#1a237e' }}>Click to Upload CSV</Typography>
-                            <Typography variant="caption" color="text.secondary">Mandatory columns: email, name</Typography>
+                            <Typography variant="caption" color="text.secondary">Required headers: email, name, profession, organization</Typography>
                         </Box>
                     </Stack>
                 ) : (
-                    /* STEP 2: PREVIEW TABLE */
                     <Box sx={{ mt: 2 }}>
                         <Alert severity="success" sx={{ mb: 3, borderRadius: 3, fontWeight: 700 }}>
-                            {csvData.length} leads parsed successfully.
+                            {csvData.length} records ready for processing.
                         </Alert>
                         <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 300, borderRadius: 3 }}>
                             <Table size="small" stickyHeader>

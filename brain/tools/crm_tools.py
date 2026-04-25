@@ -1,5 +1,6 @@
-from crewai.tools import tool
+from langchain_core.tools import tool
 import json
+import random
 
 class CRMToolbox:
     
@@ -62,28 +63,26 @@ class CRMToolbox:
                 "category": lead.get_category_display(),
                 "batch": lead.batch,
                 "platform": lead.get_platform_display(),
-                "additional_data": lead.additional_data # Crucial for Researcher agent
+                "additional_data": lead.additional_data
             })
         except Exception as e:
             return f"Error fetching lead context: {str(e)}"
 
-    @tool("fetch_campaign_context")
-    def fetch_campaign_context(campaign_id: int):
+    @tool("fetch_web_enrichment")
+    def fetch_web_enrichment(organization_name: str):
         """
-        Retrieves details about a specific marketing campaign.
-        Use this to understand the specific promotion context and target goals.
+        Simulates 2026-level web intelligence to find recent company news 
+        or professional signals for a lead's organization.
         """
-        from campaigns.models import Campaign
-        try:
-            camp = Campaign.objects.get(id=campaign_id)
-            return json.dumps({
-                "campaign_name": camp.name,
-                "target_program": camp.program.name,
-                "batch": camp.batch,
-                "start_date": camp.start_date
-            })
-        except Exception as e:
-            return f"Error fetching campaign context: {str(e)}"
+        # In a real 2026 system, this would call a real-time search API.
+        # For now, we simulate high-value insights.
+        insights = [
+            f"{organization_name} recently announced a major expansion into AI-driven services.",
+            f"Recent financial reports for {organization_name} show a 15% increase in R&D budget.",
+            f"{organization_name} is currently hiring for multiple leadership roles in digital transformation.",
+            f"Industry news suggests {organization_name} is pivoting towards sustainable energy solutions."
+        ]
+        return random.choice(insights)
 
     @tool("update_lead_intelligence")
     def update_lead_intelligence(lead_id: int, score: int = None, persona: str = None, reasoning: str = None, script: str = None):
@@ -124,20 +123,64 @@ class CRMToolbox:
         except Exception as e:
             return f"Workspace update failed: {str(e)}"
 
-    @tool("log_agent_activity")
-    def log_agent_activity(lead_id: int, agent_name: str, monologue: str, output: str):
-        """Logs the agent's internal thought process for staff auditing."""
+    @tool("get_organization_context")
+    def get_organization_context(org_id: int):
+        """
+        Retrieves the strategic profile of an organization.
+        Includes identity, thematic areas, challenges, and funding status.
+        """
+        from b2b.models import Organization
+        try:
+            org = Organization.objects.get(id=org_id)
+            return json.dumps({
+                "id": org.id,
+                "name": org.name,
+                "type": org.get_org_type_display(),
+                "academic_levels": org.academic_levels,
+                "country": org.country,
+                "hq": org.hq_location,
+                "size": org.size_range,
+                "beneficiaries": org.beneficiary_reach,
+                "thematic_areas": org.thematic_areas,
+                "strategic_priorities": org.strategic_priorities,
+                "challenges": org.challenges,
+                "capacity_gaps": org.capacity_gaps,
+                "funding": org.get_funding_status_display()
+            })
+        except Exception as e:
+            return f"Error fetching org context: {str(e)}"
+
+    @tool("save_b2b_match")
+    def save_b2b_match(org_id: int, program_id: int, score: int, strategy: str, pointers: list, reasoning: str):
+        """
+        Saves the AI-generated matchmaking results for an organization.
+        """
+        from b2b.models import B2BMatch
+        try:
+            match, _ = B2BMatch.objects.get_or_create(organization_id=org_id, program_id=program_id)
+            match.propensity_score = score
+            match.campaign_strategy = strategy
+            match.pitching_pointers = pointers
+            match.match_reasoning = reasoning
+            match.save()
+            return f"Match saved for {org_id} -> {program_id}"
+        except Exception as e:
+            return f"Error saving B2B match: {str(e)}"
+
+    @tool("log_activity")
+    def log_activity(lead_id: int, stage_name: str, monologue: str, output: str):
+        """Logs the internal thought process for staff auditing (2026 Optimized)."""
         from brain.models import AgentTaskLog
         from leads.models import Lead
         try:
             lead = Lead.objects.get(id=lead_id)
             AgentTaskLog.objects.create(
                 lead=lead,
-                agent_name=agent_name,
+                agent_name=stage_name,
                 internal_monologue=monologue,
                 output_data={"raw_output": output},
                 status='completed'
             )
-            return "Activity logged."
+            return "Stage activity logged."
         except:
             return "Logging failed."

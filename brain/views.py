@@ -8,8 +8,8 @@ from django.shortcuts import get_object_or_404
 
 # Model and Serializer imports
 from leads.models import Lead
-from brain.models import LeadIntelligence, AgentTaskLog
-from brain.serializers import LeadIntelligenceSerializer
+from brain.models import LeadIntelligence, AgentTaskLog, AIAgent, AgentInstructionTune
+from brain.serializers import LeadIntelligenceSerializer, AIAgentSerializer, AgentInstructionTuneSerializer
 from brain.workflows.lead_processing_graph import lead_brain_workflow
 
 logger = logging.getLogger(__name__)
@@ -54,8 +54,13 @@ class TriggerLeadAnalysisView(views.APIView):
                     "lead_id": lead.id,
                     "program_id": target_program.id,
                     "campaign_id": campaign_id,
-                    "score": 0, "persona": "", "research_report": "",
-                    "generated_script": "", "status": "started"
+                    "lead_data": None,
+                    "program_data": None,
+                    "web_enrichment": None,
+                    "analysis_results": None,
+                    "creative_results": None,
+                    "status": "started",
+                    "errors": []
                 }
                 lead_brain_workflow.invoke(initial_state)
             except Exception as e:
@@ -102,8 +107,13 @@ class BulkAnalyzeCampaignLeadsView(views.APIView):
                         "lead_id": entry.lead.id,
                         "program_id": campaign.program.id,
                         "campaign_id": campaign.id,
-                        "score": 0, "persona": "", "research_report": "",
-                        "generated_script": "", "status": "started"
+                        "lead_data": None,
+                        "program_data": None,
+                        "web_enrichment": None,
+                        "analysis_results": None,
+                        "creative_results": None,
+                        "status": "started",
+                        "errors": []
                     }
                     
                     # Execute LangGraph (this calls CrewAI + Gemini)
@@ -169,3 +179,41 @@ class LeadIntelligenceDetailView(views.APIView):
             data['status'] = 'processing'
 
         return Response(data, status=status.HTTP_200_OK)
+
+
+class AgentListView(views.APIView):
+    """
+    GET /api/brain/agents/
+    Lists all AI agents with their instructions and tuning history.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        agents = AIAgent.objects.all().order_by('name')
+        serializer = AIAgentSerializer(agents, many=True)
+        return Response(serializer.data)
+
+class AgentTuneView(views.APIView):
+    """
+    POST /api/brain/agents/<slug>/tune/
+    Adds a new tuning instruction block for an agent.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, slug):
+        agent = get_object_or_404(AIAgent, slug=slug)
+        instruction_text = request.data.get('instructions')
+        
+        if not instruction_text:
+            return Response({"error": "Instructions are required."}, status=400)
+            
+        tune = AgentInstructionTune.objects.create(
+            agent=agent,
+            additional_instructions=instruction_text
+        )
+        
+        return Response({
+            "message": "Instruction tuned successfully.",
+            "tune_id": tune.id,
+            "created_at": tune.created_at
+        }, status=status.HTTP_201_CREATED)

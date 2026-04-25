@@ -10,9 +10,12 @@ import {
     ExitToApp as LogoutIcon,
     School as SchoolIcon,
     Groups as GroupsIcon,
-    RocketLaunch as CampaignIcon, // Icon for Campaigner
+    Campaign as CampaignIcon, 
     AutoGraph as AutoGraphIcon,
-    Layers as LayersIcon
+    Layers as LayersIcon,
+    Search as DiscoveryIcon,
+    Business as BusinessIcon,
+    Bolt as BoltIcon
 } from '@mui/icons-material';
 import { jwtDecode } from 'jwt-decode';
 
@@ -50,9 +53,12 @@ const Sidebar = () => {
     const navItems = [
         { label: 'Dashboard', path: '/dashboard', icon: <DashboardIcon />, visible: true },
         { label: 'Lead Bank', path: '/leads', icon: <GroupsIcon />, visible: isLeadManager },
+        { label: 'Discovery Hub', path: '/discovery', icon: <DiscoveryIcon />, visible: isLeadManager },
+        { label: 'B2B Hub', path: '/b2b', icon: <BusinessIcon />, visible: isLeadManager },
         { label: 'Campaigner', path: '/campaigns', icon: <CampaignIcon />, visible: isCampaignManager },
         { label: 'Academic Programs', path: '/programs', icon: <SchoolIcon />, visible: isSkillsAdmin },
         { label: 'Staff Management', path: '/enroll', icon: <PersonAddIcon />, visible: isAdmin },
+        { label: 'Agent Tuning', path: '/tuning', icon: <BoltIcon />, visible: isManager },
     ];
 
     return (

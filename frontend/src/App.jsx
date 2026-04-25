@@ -8,6 +8,9 @@ import AdminEnrollment from './pages/AdminEnrollment';
 import ChangePassword from './pages/ChangePassword';
 import Programs from './pages/Programs';
 import LeadBank from './pages/LeadBank';
+import DiscoveryHub from './pages/DiscoveryHub';
+import B2BHub from './pages/B2BHub';
+import AgentTuning from './pages/AgentTuning';
 import Campaigns from './pages/Campaigns';
 import CampaignWorkspace from './pages/CampaignWorkspace';
 import Dashboard from './pages/Dashboard'; // <--- THE REAL DASHBOARD WITH CHARTS
@@ -109,6 +112,36 @@ function App() {
                     element={
                         <ProtectedRoute requiredRoles={['Lead manager']}>
                             <Layout><LeadBank /></Layout>
+                        </ProtectedRoute>
+                    } 
+                />
+
+                {/* 2b. Discovery Hub (AI Matchmaking Index) */}
+                <Route 
+                    path="/discovery" 
+                    element={
+                        <ProtectedRoute requiredRoles={['Lead manager']}>
+                            <Layout><DiscoveryHub /></Layout>
+                        </ProtectedRoute>
+                    } 
+                />
+
+                {/* 2c. B2B Hub (Organization Strategy) */}
+                <Route 
+                    path="/b2b" 
+                    element={
+                        <ProtectedRoute requiredRoles={['Lead manager']}>
+                            <Layout><B2BHub /></Layout>
+                        </ProtectedRoute>
+                    } 
+                />
+
+                {/* AI Agent Tuning */}
+                <Route 
+                    path="/tuning" 
+                    element={
+                        <ProtectedRoute requiredRoles={['Admin', 'Manager']}>
+                            <Layout><AgentTuning /></Layout>
                         </ProtectedRoute>
                     } 
                 />

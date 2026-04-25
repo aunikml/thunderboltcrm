@@ -1,12 +1,12 @@
 import React from 'react';
 import { Grid, Card, Stack, Box, Typography } from '@mui/material';
-import { Groups, RocketLaunch, CheckCircle, Psychology } from '@mui/icons-material';
+import { Groups, Campaign, CheckCircle, Psychology } from '@mui/icons-material';
 
 const StatCard = ({ title, value, type }) => {
     const getIcon = () => {
         switch(type) {
             case 'leads': return <Groups color="primary" />;
-            case 'campaigns': return <RocketLaunch color="secondary" />;
+            case 'campaigns': return <Campaign color="secondary" />;
             case 'converted': return <CheckCircle sx={{ color: '#2e7d32' }} />;
             case 'ai': return <Psychology sx={{ color: '#5e35b1' }} />;
             default: return <Groups />;

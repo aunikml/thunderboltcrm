@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     'brain',
     'campaigns',
     'dashboard', 
+    'b2b',
 ]
 
 AUTH_USER_MODEL = 'accounts.User'

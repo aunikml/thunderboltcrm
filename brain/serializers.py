@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import LeadIntelligence, AgentTaskLog
+from .models import LeadIntelligence, AgentTaskLog, AIAgent, AgentInstructionTune
 
 class LeadIntelligenceSerializer(serializers.ModelSerializer):
     """
@@ -47,3 +47,15 @@ class AgentTaskLogSerializer(serializers.ModelSerializer):
             'total_cost', 
             'created_at'
         ]
+
+class AgentInstructionTuneSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AgentInstructionTune
+        fields = ['id', 'additional_instructions', 'created_at']
+
+class AIAgentSerializer(serializers.ModelSerializer):
+    tuning_history = AgentInstructionTuneSerializer(many=True, read_only=True)
+    
+    class Meta:
+        model = AIAgent
+        fields = ['id', 'name', 'slug', 'description', 'base_instruction', 'tuning_history', 'created_at']

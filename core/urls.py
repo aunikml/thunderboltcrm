@@ -9,4 +9,5 @@ urlpatterns = [
     path('api/brain/', include('brain.urls')),
     path('api/campaigns/', include('campaigns.urls')),
     path('api/dashboard/', include('dashboard.urls')),
+    path('api/b2b/', include('b2b.urls')),
 ]

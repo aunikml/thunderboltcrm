@@ -21,7 +21,7 @@ const Login = () => {
     const navigate = useNavigate();
 
     // Use a string path instead of a static import to prevent Vite from crashing if file is missing
-    const logoUrl = "/src/assets/brac_ied_logo.png";
+    const logoUrl = "/src/assets/brac-ied-logo.png";
 
     const handleLogin = async (e) => {
         e.preventDefault();

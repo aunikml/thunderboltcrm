@@ -1,0 +1,12 @@
+Django>=4.2.0
+djangorestframework>=3.14.0
+django-cors-headers>=4.0.0
+djangorestframework-simplejwt>=5.2.0
+google-generativeai>=0.3.0
+langchain-google-genai>=0.0.1
+langgraph>=0.0.1
+python-dotenv>=1.0.0
+requests>=2.31.0
+whitenoise>=6.5.0
+gunicorn>=21.2.0
+psycopg2-binary>=2.9.0

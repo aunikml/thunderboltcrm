@@ -79,11 +79,11 @@ const Sidebar = () => {
         >
             {/* Branding */}
             <Toolbar sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', py: 4, px: 3 }}>
-                <Typography variant="h5" sx={{ fontWeight: 900, color: '#1a237e', letterSpacing: '-1.5px' }}>
-                    THUNDERBOLT
+                <Typography variant="h5" sx={{ fontWeight: 900, color: '#1a237e', letterSpacing: '-1px' }}>
+                    BRAC IED
                 </Typography>
                 <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.disabled', letterSpacing: 1.5, textTransform: 'uppercase' }}>
-                    Academic Console
+                    Thunderbolt Console
                 </Typography>
             </Toolbar>
             

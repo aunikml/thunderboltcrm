@@ -1,6 +1,6 @@
 # ThunderBolt CRM - Deployment Guide (Ubuntu VM)
 
-This guide provides step-by-step instructions for deploying the ThunderBolt CRM (Django Backend + React Frontend) on an Ubuntu 22.04+ Virtual Machine.
+This guide provides step-by-step instructions for deploying the ThunderBolt CRM (Django Backend + React Frontend) on an Ubuntu 22.04+ Virtual Machine with **PostgreSQL**.
 
 ---
 
@@ -8,12 +8,30 @@ This guide provides step-by-step instructions for deploying the ThunderBolt CRM 
 Update the system and install core dependencies:
 ```bash
 sudo apt update && sudo apt upgrade -y
-sudo apt install -y python3-pip python3-venv nginx git
+sudo apt install -y python3-pip python3-venv nginx git postgresql postgresql-contrib libpq-dev
 ```
 
 ---
 
-## 2. Clone and Setup Environment
+## 2. PostgreSQL Database Setup
+Create a dedicated database and user for the CRM:
+```bash
+sudo -u postgres psql
+```
+Inside the prompt:
+```sql
+CREATE DATABASE thunderbolt;
+CREATE USER thunderadmin WITH PASSWORD 'your_secure_password';
+ALTER ROLE thunderadmin SET client_encoding TO 'utf8';
+ALTER ROLE thunderadmin SET default_transaction_isolation TO 'read committed';
+ALTER ROLE thunderadmin SET timezone TO 'UTC';
+GRANT ALL PRIVILEGES ON DATABASE thunderbolt TO thunderadmin;
+\q
+```
+
+---
+
+## 3. Clone and Setup Environment
 Clone the repository and create a virtual environment:
 ```bash
 git clone https://github.com/aunikml/thunderboltcrm.git
@@ -25,17 +43,17 @@ pip install -r requirements.txt
 
 ---
 
-## 3. Configuration (.env)
+## 4. Configuration (.env)
 Create a `.env` file in the root directory:
 ```bash
-cp .env.example .env  # Or create a new one
+cp .env.example .env
 nano .env
 ```
-Ensure your `GOOGLE_API_KEY` and `SECRET_KEY` are set.
+Ensure `GOOGLE_API_KEY`, `SECRET_KEY`, and all `DATABASE_*` fields are filled correctly.
 
 ---
 
-## 4. Database & Static Files
+## 5. Database & Static Files
 Run migrations and prepare the AI Brain:
 ```bash
 python manage.py migrate
@@ -45,7 +63,7 @@ python manage.py collectstatic --no-input
 
 ---
 
-## 5. Frontend Build (Vite)
+## 6. Frontend Build (Vite)
 Build the React production bundle:
 ```bash
 cd frontend
@@ -56,8 +74,8 @@ cd ..
 
 ---
 
-## 6. Gunicorn Configuration (Service)
-Create a systemd service file to keep the backend running:
+## 7. Gunicorn Configuration (Service)
+Create a systemd service file:
 ```bash
 sudo nano /etc/systemd/system/thunderbolt.service
 ```
@@ -88,12 +106,12 @@ sudo systemctl enable thunderbolt
 
 ---
 
-## 7. Nginx Configuration
-Create an Nginx configuration to serve the frontend and proxy the backend:
+## 8. Nginx Configuration
+Create an Nginx configuration:
 ```bash
 sudo nano /etc/nginx/sites-available/thunderbolt
 ```
-Paste the following:
+Paste the following (Replace `your_domain_or_ip`):
 ```nginx
 server {
     listen 80;
@@ -106,12 +124,12 @@ server {
         try_files $uri /index.html;
     }
 
-    # Static Files (Django Admin/Assets)
+    # Static Files
     location /static/ {
         alias /home/ubuntu/thunderboltcrm/staticfiles/;
     }
 
-    # Backend API (Gunicorn Proxy)
+    # Backend API
     location /api/ {
         include proxy_params;
         proxy_pass http://unix:/home/ubuntu/thunderboltcrm/thunderbolt.sock;
@@ -124,16 +142,9 @@ server {
     }
 }
 ```
-Enable the site and restart Nginx:
+Enable the site:
 ```bash
 sudo ln -s /etc/nginx/sites-available/thunderbolt /etc/nginx/sites-enabled
 sudo nginx -t
 sudo systemctl restart nginx
 ```
-
----
-
-## 8. Final Verification
-1. Open your browser and navigate to the VM IP.
-2. Login with your admin credentials.
-3. Test the **AI Agent Tuning** to ensure the brain is connected.
